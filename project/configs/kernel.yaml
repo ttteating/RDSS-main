@@ -1,0 +1,31 @@
+# 高斯核与 α 配置（§A2）。
+# P0：先固定口径；P1 用 median heuristic 在训练池特征上算出 sigma 后回填（sigma/gamma 为 null 表示尚未计算）。
+kernel:
+  type: gaussian
+  formula: "k(x,y) = exp(-||x-y||^2 / sigma)"
+  bandwidth_rule: median        # median heuristic：sigma = 全池 pairwise 距离的中位数
+  sigma: null                   # TODO(P1): scripts/compute_sigma.py 回填
+  gamma: null                   # TODO(P1): gamma = 1 / sigma
+  sigma_source: null            # TODO(P1): 由 compute_sigma.py 写入 n / l2 / bins / 特征 sha1 / 时间戳
+  gamma_official: 0.5           # 官方 RDSS.py 的硬编码默认值（A7-1），仅用于"实现差异"复现实验，不是主实验口径
+  l2_normalize_features: true   # 先 L2 归一化再算距离（工程建议，写入配置供审计）
+  block_rows: 2000              # 分块行数；2000×45000 float32 ≈ 360MB/块，避免一次性开 8GB 核矩阵
+  bins: 32768                   # median heuristic 直方图 bin 数，精度 ≈ 一个 bin 宽（4/32768）
+  dtype: float32
+
+# α 语义：α=1 → 退化为经典 MMD（只剩代表性）；α=0 → 退化为平均相似度（只剩多样性）；
+# α 越小 ⇔ λ=(1-α)/(α·m) 越大 ⇔ 越鼓励多样性。
+alpha:
+  rule: "1 - 1/sqrt(m)"
+  default: auto                 # 主实验按 auto 取值
+  table:                        # 代值（仅 m=250/1000 在范围内，其余为论文参照）
+    40: 0.8419
+    250: 0.9368
+    1000: 0.9684
+    4000: 0.9842
+  ablation: [0.0, 0.9368, 1.0]  # P5 α 敏感性；0.9368 即 m=250 的 auto 值
+
+# μ 的对角线口径（A7-6）：论文 Algorithm 1 含自身 k(x_i,x_i)=1；官方 RDSS.py L22 去掉对角线。
+mu:
+  diagonal: include            # 主口径=论文；一致性测试若与官方索引不同则改为 exclude 并记录
+  consistency_test_budget: 250 # 与官方实现比对索引集合的规模

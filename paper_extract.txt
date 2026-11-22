@@ -1,0 +1,663 @@
+﻿论文总页数: 21
+
+===== PAGE 1 =====
+Enhancing Semi-Supervised Learning via
+Representative and Diverse Sample Selection
+Qian Shao1,3∗, Jiangrui Kang2∗, Qiyuan Chen1,3∗, Zepeng Li4, Hongxia Xu1,3,
+Yiwen Cao2, Jiajuan Liang2† , and Jian Wu1†
+1College of Computer Science & Technology and Liangzhu Laboratory, Zhejiang University
+2BNU-HKBU United International College 3WeDoctor Cloud
+4The State Key Laboratory of Blockchain and Data Security, Zhejiang University
+{qianshao, qiyuanchen, lizepeng, einstein, wujian2000}@zju.edu.cn
+{kangjiangrui, yiwencao, jiajuanliang}@uic.edu.cn
+Abstract
+Semi-Supervised Learning (SSL) has become a preferred paradigm in many deep
+learning tasks, which reduces the need for human labor. Previous studies pri-
+marily focus on effectively utilising the labelled and unlabeled data to improve
+performance. However, we observe that how to select samples for labelling also sig-
+nificantly impacts performance, particularly under extremely low-budget settings.
+The sample selection task in SSL has been under-explored for a long time. To fill
+in this gap, we propose a Representative and Diverse Sample Selection approach
+(RDSS). By adopting a modified Frank-Wolfe algorithm to minimise a novel crite-
+rion α-Maximum Mean Discrepancy (α-MMD), RDSS samples a representative
+and diverse subset for annotation from the unlabeled data. We demonstrate that
+minimizing α-MMD enhances the generalization ability of low-budget learning.
+Experimental results show that RDSS consistently improves the performance of
+several popular SSL frameworks and outperforms the state-of-the-art sample se-
+lection approaches used in Active Learning (AL) and Semi-Supervised Active
+Learning (SSAL), even with constrained annotation budgets. Our code is available
+at RDSS.
+1 Introduction
+Semi-Supervised Learning (SSL) is a popular paradigm which reduces reliance on large amounts
+of labeled data in many deep learning tasks [40, 35, 59]. Previous SSL research mainly focuses on
+effectively utilising labelled and unlabeled data. Specifically, labelled data directly supervise model
+learning, while unlabeled data help learn a desirable model that makes consistent and unambiguous
+predictions [53]. Besides, we also find that how to select samples for annotation will greatly affect
+model performance, particularly under extremely low-budget settings (see Section 7.2).
+The prevailing sample selection methods in SSL have many shortcomings. For example, random
+sampling may introduce imbalanced class distributions and inadequate coverage of the overall data
+distribution, resulting in poor performance. Stratified sampling randomly selects samples within
+each class, which is impractical in real-world scenarios where the label for each sample is unknown.
+Existing researchers also employ representativeness and diversity strategies to select appropriate
+samples for annotation. Representativeness [13] ensures that the selected subset distributes similarly
+with the entire dataset, and diversity [54] is designed to select informati
+
+===== PAGE 2 =====
+a) Representativeness only
+…
+b) Diversity only
+…
+c) 𝛼-MMD (ours)
+…
+Figure 1: Visualization of selected samples from a dog dataset. The red and grey circles respectively
+symbolize the selected and unselected samples. a) The selected samples often contain an excessive
+number of highly similar instances, leading to redundancy; b) The selected samples contain too many
+edge points, unable to cover the entire dataset; c) The selected samples represent the entire dataset
+comprehensively and accurately.
+them in feature space. And focusing on only one aspect presents significant limitations (Figure 1a
+and b). To address these issues, Xie et al. [57] and Wang et al. [50] employ a combination of the two
+strategies for sample selection. These methods set a fixed ratio for representativeness and diversity,
+restricting the ultimate performance through our empirical evidence (see Section 7.4). Fundamentally,
+they lack a theoretical basis to substantiate their effectiveness.
+We observe that Active Learning (AL) primarily focuses on selecting the right samples for annotation,
+and numerous studies transfer the sample selection methods of AL into SSL, giving rise to Semi-
+Supervised Active Learning (SSAL) [ 51]. However, most of these approaches exhibit several
+limitations: (1) They require randomly selected samples to begin with, which expends a portion of the
+labelling budget, making it difficult to work effectively with a very limited budget (e.g., 1% or even
+lower) [6]; (2) They involve human annotators in iterative cycles of labelling and training, leading
+to substantial labelling overhead [57]; (3) They are coupled with the model training so that samples
+for annotation need to be re-selected every time a model is trained [50]. In summary, selecting the
+appropriate samples for annotation is challenging in SSL.
+To address these challenges, we propose a Representative and Diverse Sample Selection approach
+(RDSS) that requests annotations only once and operates independently of the downstream tasks.
+Specifically, inspired by the concept of Maximum Mean Discrepancy (MMD) [14], we design a novel
+criterion named α-MMD. It aims to strike a balance between representativeness and diversity via a
+trade-off parameter α (Figure 1c), for which we find an optimal interval adapt to different budgets.
+By using a modified Frank-Wolfe algorithm called Generalized Kernel Herding without Replacement
+(GKHR), we can get an efficient approximate solution to this minimization problem.
+We prove that under certain Reproducing Kernel Hilbert Space (RKHS) assumptions, α-MMD
+effectively bounds the difference between training with a constrained versus an unlimited labelling
+budget. This implies that our proposed method could significantly enhance the generalization
+ability of learning with limited labels. We also give a theoretical assessment of GKHR with some
+supplementary numerical experiments, showing that GKHR performs well in learning with limited
+labels.
+Furthermore, we evaluate our 
+
+===== PAGE 3 =====
+• We prove that our method benefits the generalizability of the trained model under certain
+assumptions and rigorously establish an optimal interval for the trade-off parameter α adapt
+to the different budgets.
+• We compare RDSS with sample selection strategies widely used in SSL, AL or SSAL,
+the results of which demonstrate superior sample efficiency compared to these strategies.
+In addition, we conduct ablation experiments to verify our method’s superiority over the
+fixed-ratio approach.
+2 Related Work
+Semi-Supervised Learning Semi-Supervised Learning (SSL) effectively utilizes sparse labeled
+data and abundant unlabeled data for model training. Consistency Regularization [34, 20, 45], Pseudo-
+Labeling [21, 56] and their hybrid strategies [40, 63, 35] are commonly used in SSL. Consistency
+Regularization ensures the model’s output stays stable even when there’s noise or small changes in
+the input, usually from the data augmentation [55]. Pseudo-labelling integrates high-confidence data
+pseudo-labels directly into training, adhering to entropy minimization [23]. Moreover, an integrative
+approach that combines the aforementioned strategies can also achieve substantial results [53, 59].
+Even though these approaches have been proven effective, they usually assume that labelled samples
+are randomly selected from each class (i.e., stratified sampling), which is not practical in real-world
+scenarios where the label for each sample is unknown.
+Active Learning Active learning (AL) aims to optimize the learning process by selecting the
+appropriate samples for labelling, reducing reliance on large labelled datasets. There are two
+different criteria for sample selection: uncertainty and representativeness. Uncertainty sampling
+selects samples about which the current model is most uncertain. Earlier studies utilized posterior
+probability [22, 49], entropy [18, 26], and classification margin [47] to estimate uncertainty. Recent
+research regards uncertainty as training loss [ 17, 60], influence on model performance [ 11, 24]
+or the prediction discrepancies between multiple classifiers [ 8]. However, uncertainty sampling
+methods may exhibit performance disparities across different models, leading researchers to focus
+on representativeness sampling, which aims to align the distribution of selected subset with that of
+the entire dataset [36, 39, 27]. Most AL approaches are difficult to perform well under extremely
+low-label settings. This may be because they usually require randomly selected samples to begin
+with and involve human annotators in iterative cycles of labelling and training, leading to substantial
+labelling overhead.
+Model-Free Subsampling Subsampling is a statistical approach which selects a subset with size
+m as a surrogate for the full dataset with size n ≫ m. While model-based subsampling methods
+depend heavily on the model assumptions [1, 61], improper choice of the model could lead to bad
+performance of estimation and prediction. In that case, m
+
+===== PAGE 4 =====
+Following the methodology of previous works, we use representativeness and diversity as criteria
+for evaluating the informativeness of selected samples. Representativeness ensures the selected
+samples distribute similarly to the full unlabeled dataset. Diversity is proposed to prevent an excessive
+concentration of selected samples in high-density areas of the full unlabeled dataset. Furthermore,
+the cluster assumption in SSL suggests that the data tend to form discrete clusters, in which boundary
+points are likely to be located in the low-density area. Therefore, under this assumption, selected
+samples with diversity contain more boundary points than the non-diversified ones, which is desired
+in training classifiers.
+As a result, our goal can be formulated by solving the following problem:
+max
+Im⊂[n]
+Rep(XIm, Xn) + λDiv(XIm, Xn), (1)
+where Rep(XIm, Xn) and Div(XIm, Xn) quantify the representativeness and diversity of selected
+samples respectively and λ is a hyperparameter to balance the trade-off representativeness and
+diversity.
+Besides, we propose another two fundamental settings which are beneficial to the implementation of
+the framework: (1) Low-budget learning. The budget for many of the real-world tasks which require
+sample selection procedures is relatively low compared to the size of unlabeled data. Therefore,
+we set m/n ≤ 0.2 in default in the following context, including the analysis of the sampling
+algorithm and the experiments; (2) Sampling without Replacement. Compared with the setting
+of sampling with replacement, sampling without replacement offers several benefits which better
+match our tasks, including bias and variance reduction, precision increase and representativeness
+enhancement [25, 46].
+4 Representative and Diversity Sample Selection
+The Representative and Diverse Sample Selection (RDSS) framework consists of two steps: (1)Quan-
+tification. We quantify the representativeness and diversity of selected samples by a novel concept
+called α-MMD (6), where λ is replaced by α as the trade-off hyperparameter; (2) Optimization. We
+optimize α-MMD by GKHR algorithm to obtain the optimally selected samples XI∗m.
+4.1 Quantification of Diversity and Representativeness
+In classical statistics and machine learning problems, the inner product of data points x, y ∈ X,
+defined by ⟨x, y⟩, is employed to as a similarity measure between x, y. However, the application of
+linear functions can be very restrictive in real-world problems. In contrast, kernel methods use kernel
+functions k(x, y), including Gaussian kernels (RBF), Laplacian kernels and polynomial kernels, as
+non-linear similarity measures between x, y, which are actually inner products of the projections of
+k(x, y) in some high-dimensional feature space [29].
+Let k(·, ·) be a kernel function on X × X, and we employ k(·, ·) to measure the similarity between
+any two points and the average similarity, denoted by
+Sk(XIm ) = 1 m2 X i∈Im X j∈Im k (xi, xj) , (2)
+to measure the similarity bet
+
+===== PAGE 5 =====
+We can next derive the empirical version for MMD that is able to measure the representativeness
+of XIm = {xi}i∈Im relative to Xn = {xi}n i=1 by replacing P, Qwith the empirical distribution
+constructed by XIm, Xn in (3):
+MMD2 k(XIm, Xn) := 1 n2
+nX
+i=1
+nX
+j=1
+k (xi, xj)+ 1 m2 X i∈Im X j∈Im k (xi, xj)− 2 mn nX i=1 X j∈Im k (xi, xj) .
+(4)
+Optimization objective. Set Rep(·, ·) = − MMD2 k(·, ·) and Div(·) = −Sk(·) in (1), where k is a
+proper kernel function, our optimization objective becomes
+min
+Im⊂[n]
+MMD2 k(XIm, Xn) + λSk(XIm). (5)
+Set λ = 1−α αm , since Pn i=1 Pn j=1 k (xi, xj) is a constant, the objective function in (5) can be rewritten
+by
+α MMD2 k(XIm , Xn) + 1 − α m Sk(XIm) + α(α − 1) n2
+nX
+i=1
+nX
+j=1
+k (xi, xj)
+= α2
+n2
+nX
+i=1
+nX
+j=1
+k (xi, xj) + 1 m2 X i∈Im X j∈Im k (xi, xj) − 2α mn nX i=1 X j∈Im k (xi, xj)
+= sup
+∥f ∥H≤1
+
+ 1
+m
+X
+i∈Im
+f (xi) − α n
+nX
+j=1
+f (xj)
+
+
+2
+(6)
+which defines a new concept called α-MMD, denoted by MMDk,α(XIm , Xn). This new concept
+distinguishes our method from those existing methods, which is essential for developing the sampling
+algorithms and theoretical analysis. Note that α-MMD degenerates to classical MMD when α = 1
+and degenerates to average similarity when α = 0. As α decreases, λ increases, thereby encouraging
+the diversity for sample selection.
+Remark 1. In the following context, all the kernels are assumed to be characteristic and positive
+definite if not specified. The following illustrates the advantages of the two properties.
+Characteristics kernels. The MMD is generally a pseudo-metric on the space of all Borel probability
+distributions, implying that the MMD between two different distributions can be zero. Nevertheless,
+MMD becomes a proper metric when k is a characteristic kernel, i.e., P →
+R
+X k(·, x)dP for any Borel probability distribution P on X [29]. Therefore, MMD induced by characteristic kernels can
+be more appropriate for measuring representativeness.
+Positive definite kernels. Aronszajn [2] showed that for every positive definite kernel k(·, ·), i.e., its
+Gram matrix is always positive definite and symmetric, it uniquely determines an RKHS H and vice
+versa. This property is not only important for evaluating the property of MMD [43] but also required
+in optimizing MMD [32] by Frank-Wolfe algorithm.
+4.2 Sampling Algorithm
+In the previous research [ 36, 27, 50, 38, 58], sample selection is usually modelled by a non-
+convex combinatorial optimization problem. In contrast, following the idea of [ 4], we regard
+minIm∈[n] MMD2 k,α(XIm, Xn) as a convex optimization problem by exploiting the convexity of
+α-MMD, and then solve it by a fast iterative minimization procedure derived from Frank-Wolfe
+algorithm (see Appendix A for derivation details):
+xi∗ p+1 ∈ arg min i∈[n] fI∗p (xi), I ∗ p+1 ← I∗ p ∪ {i∗ p+1}, I0 = ∅, (7)
+where fIp (xi) = P j∈Ip k (xi, xj) − αp Pn l=1 k(xi, xl)/n. As an extension of kernel herding [7],
+its corresponding algorithm (see Algorithm 2) is called Generalized Kernel Herding (
+
+===== PAGE 6 =====
+Algorithm 1 Generalized Kernel Herding without Replacement
+Require: Data set Xn = {x1, · · ·, xn} ⊂ X; the number of selected samples m < n; a positive
+definite, characteristic and radial kernel k(·, ·) on X × X; trade-off parameter α ≤ 1.
+Ensure: Selected samples XI∗m = {xi∗ 1 , · · ·, xi∗m }.
+1: For each xi ∈ Xn calculate µ(xi) := Pn j=1 k(xj, xi)/n.
+2: Set β1 = 1, S0 = 0, I = ∅.
+3: for p ∈ {1, · · ·, m} do
+4: i∗ p ∈ arg mini∈[n]\I∗p Sp−1(xi) − αµ(xi)
+5: For all i ∈ [n]\I ∗ p, update Sp(xi) = (1 − βp)Sp−1(xi) + βpk(xi∗ p , xi)
+6: I ∗ p+1 ← I∗ p ∪ {i∗ p}, p ← p + 1, set βp = 1/p.
+7: end for
+which admits no repetitiveness in the selected samples. Its corresponding algorithm (see Algorithm
+1) is thereby named as Generalized Kernel Herding without Replacement (GKHR), employed as the
+sampling algorithm for RDSS.
+Computational complexity. Despite the time cost for calculating kernel functions, the computational
+complexity of GKHR is O(mn), since in each iteration, the steps in lines 4 and 5 of Algorithm 2
+respectively require O(n) computations. Note that GKH has the same order of computational
+complexity as GKHR.
+5 Theoretical Analysis
+5.1 Generalization Bounds
+Recall the core-set approach in [36], i.e., for any h ∈ H,
+R(h) ≤ bRS(h) + |R(h) − bRT (h)| + | bRT (h) − bRS(h)|,
+where T is the full labeled dataset and S ⊂ T is the core set, R(h) is the expected risk of h,
+bRT (h), bRS(h) are empirical risk of h on T, S. The first term bRS(h) is unknown before we label
+the selected samples, and the second term |R(h) − bRT (h)| can be upper bounded by the so-called
+generalization bounds [3, 64] which do not depend on the choice of core set. Therefore, to control the
+upper bound of R(h), we only need to analyse the upper bound of the third term | bRT (h) − bRS(h)|
+called core-set loss, which requires several mild assumptions. Shalit, et al. [ 37] derived a MMD-
+type upper bound for | bRT (h) − bRS(h)| to estimate individual treatment effect, while our bound is
+generalized to a wider range of tasks.
+Let H1 = {h|h : X → Y}be a hypothesis set in which we are going to select a predictor and suppose
+that the labelled data T = {(xi, yi)}n i=1 are i.i.d. sampled from a random vector (X, Y) defined on
+X × Y. We firstly assume that H1 is an RKHS, which is mild in machine learning theory [3, 5].
+Assumption 5.1. H1 is an RKHS associated with bounded positive definite kernel k1 where the
+norm of any h ∈ H1 is bounded by Kh.
+We further make RKHS assumptions on the functional space of E(Y |X) and Var(Y |X) that are
+fundamental in the field of conditional distribution embedding [41, 43].
+Assumption 5.2. There is an RKHS H2 associated with bounded positive definite kernel k2 such
+that E(Y |X) ∈ H2 and the norm of any E(Y |X) is bounded by Km.
+Assumption 5.3. There is an RKHS H3 associated with bounded positive definite kernel k3 such
+that Var(Y |X) ∈ H3 and the norm of any Var(Y |X) is bounded by Ks.
+We next give a α-MMD-type upper bound for the core-set loss by the followi
+
+===== PAGE 7 =====
+Therefore, minimizing α-MMD can optimize the generalization bound for R(h) and benefit the
+generalizability of the trained model (predictor).
+5.2 Finite-Sample-Error-Bound for GKHR
+The concept of convergence does not apply to analyzing GKHR. With n fixed, GKHR iterates for at
+most n times and then returns XI∗n = Xn. Consequently, we analyze the performance of GKHR by its finite-sample-error bound. Previous to that, we make an assumption on the mean of fI∗p over the
+full unlabeled dataset.
+Assumption 5.5. For any I ∗ p returned by GKHR, 1 ≤ p ≤ m − 1, there exists p + 1 elements
+{xjl }p+1 l=1 in Xn such that
+fI∗p (xj1 ) ≤ · · ·fI∗p (xjp+1 ) ≤
+Pn
+i=1 fI∗p (xi)
+n .
+When m is not relatively small, this assumption is rather unrealistic. Nevertheless, under our low-
+budget setting, especially when m ≪ n, the assumption becomes an extension of the principle that
+"the minimum is never larger than the mean", which still probably makes sense. We can then show
+that the decaying rate for optimization error of GKHR can be upper bounded by O(log m/m):
+Theorem 5.6. Let XI∗m be the samples selected by GKHR, under assumption 4, it holds that
+MMD2 k,α   XI∗m, Xn  ≤ C 2 α + B 2 + logm m + 1 (9)
+where B = 2K, 0 ≤ maxx∈X k(x, x) = K, C 2 α = (1 − α)2K where K is defined in Lemma B.6.
+6 Choice of Kernel and Hyperparameter Tuning
+In this section, we make some suggestions for choosing the kernel and tuning the hyperparameter α.
+Choice of kernel. Recall Remark 1 in Section 4.1, we only consider characteristic and positive
+definite kernels in RDSS. Since the Gaussian kernels are the most commonly used kernels in the
+field of machine learning and statistics [3, 15], we introduce Gaussian kernel as our choice, which
+is defined by k(x, y) = exp(−∥x − y∥2 2)/σ2. The bandwidth parameter σ is set to be the median
+distance between samples in the aggregate dataset [15], i.e., σ = Median({∥x − y∥2|x, y ∈ Xn}),
+since the median is robust and also compromises between extreme cases.
+Tuning trade-off hyperparameterα. According to Theorem 5.6 and Lemma B.3, by straightforward
+deduction we have
+MMDk
+ 
+XI∗m , Xn
+
+≤ Cα + O
+ r
+log m
+m
+!
++ (1 − α)
+√
+K
+to upper bound the MMD between the selected samples and the full dataset under a low-budget
+setting. We can just set α ∈ [1 − 1√m , 1) so that the upper bound of the MMD would not be larger
+than the one of α-MMD in the perspective of the order of magnitude.
+7 Experiments
+In this section, we first explain the implementation details of our method RDSS in Section 7.1. Next,
+we compare RDSS with other sampling methods by integrating them into two state-of-the-art (SOTA)
+SSL approaches (FlexMatch [ 63] and Freematch [ 53]) on five datasets (CIFAR-10/100, SVHN,
+STL-10 and ImageNet-1k) in Section 7.2. The details of the datasets, the visualization results and the
+computational complexity of different sampling methods are shown in Appendix D.2, D.3, and D.4,
+respectively. We also compare against various AL/SSAL approaches in Section 7.3. Lastly, we 
+
+===== PAGE 8 =====
+7.1 Implementation Details of Our Method
+First, we leverage the pre-trained image feature extraction capabilities of CLIP [33], a vision trans-
+former architecture, to extract features. Subsequently, the [CLS] token features produced by the
+model’s final output are employed for sample selection. During the sample selection phase, the
+Gaussian kernel function is chosen as the kernel method to compute the similarity of samples in
+an infinite-dimensional feature space. The value of σ for the Gaussian kernel function is set as
+explained in Section 6. To ensure diversity in the sampled data, we introduce a penalty factor
+given by α = 1 − 1√m, where m denotes the number of selected samples. Concretely, we set
+m = {40, 250, 4000} for CIFAR-10, m = {400, 2500, 10000} for CIFAR-100, m = {250, 1000}
+for SVHN, m = {40, 250} for STL-10 and m = {100000} for ImageNet. Next, the selected samples
+are used for two SSL approaches, which are trained and evaluated on the datasets using the codebase
+Unified SSL Benchmark (USB) [52]. The optimizer for all experiments is standard stochastic gradient
+descent (SGD) with a momentum of 0.9 [44]. The initial learning rate is 0.03 with a learning rate
+decay of 0.0005. We use ResNet-50 [16] for the ImageNet experiment and Wide ResNet-28-2 [62]
+for other datasets. Finally, we evaluate the performance with the Top-1 classification accuracy metric
+on the test set. Experiments are run on 8*NVIDIA Tesla A100 (40 GB) and 2*Intel 6248R 24-Core
+Processor. We average our results over five independent runs.
+7.2 Comparison with Other Sampling Methods
+Main results We apply RDSS on Flexmatch and Freematch to compare with the following three
+baselines and two SOTA methods in SSL under different annotation budget settings. The baselines
+conclude Stratified, Random and k-Means, while the two SOTA methods are USL [50] and
+ActiveFT [57]. The results are shown on Table 1 from which we have several observations: (1)
+Our proposed RDSS achieves the highest accuracy, outperforming other sampling methods, which
+underscores the effectiveness of our approach; (2) USL attains suboptimal results under most budget
+settings yet exhibits a significant gap compared to RDSS, particularly under severely constrained
+ones. For instance, FreeMatch achieves a 4.95% rise on the STL-10 with a budget of 40; (3) In most
+experiments, RDSS either approaches or surpasses the performance of stratified sampling, especially
+on SVHN and STL-10. However, the stratified sampling method is practically infeasible given that
+the category labels of the data are not known a priori.
+Results on ImageNet We also compare the second-best method USL with RDSS on ImageNet.
+Following the settings of FreeMatch [ 53], we select 100k samples for annotation. FreeMatch,
+using RDSS and USL as sampling methods, achieves 58.24% and 56.86% accuracy, respectively,
+demonstrating a substantial enhancement in the performance of our method over the USL approach.
+Table 1: Comparison with other sampling 
+
+===== PAGE 9 =====
+exclusively use samples selected by RDSS for supervised learning compared to other AL approaches,
+considering that AL relies solely on labelled samples for supervised learning. The implementation
+details are shown in Appendix D.5. The experimental results are presented in Table 2, from which
+we observe that RDSS achieves the highest accuracy under almost all budget settings when relying
+solely on labelled data for supervised learning, with notable improvements on CIFAR-100.
+Second, we compare RDSS with sampling methods used in SSAL when applied to the same SSL
+framework (i.e., FlexMatch or FreeMatch) on CIFAR-10. The sampling methods conclude Core-
+SetSSL [36], MMA [42], CBSSAL [12], and TOD-Semi [17]. In detail, we tune recent SSAL
+approaches with their public implementations and run experiments under an extremely low-budget
+setting, i.e., 40 samples in a 20-random-and-20-selected setting. Table 3 illustrates that the perfor-
+mance of most SSAL approaches falls below that of random sampling methods under extremely
+low-budget settings. This inefficiency stems from the dependency of sample selection on model
+performance within the SSAL framework, which struggles when the model is weak. Our model-free
+method, in contrast, selects samples before training, avoiding these pitfalls.
+Table 2: Comparison with AL approaches under
+Supervised Learning (SL) paradigm. The best per-
+formance is bold and the second best performance
+is underlined.
+Dataset CIFAR-10 CIFAR-100
+Budget 7500 10000 7500 10000
+CoreSet 85.46 87.56 47.17 53.06
+V AAL 86.82 88.97 47.02 53.99
+LearnLoss 85.49 87.06 47.81 54.02
+MCDAL 87.24 89.40 49.34 54.14
+SL+RDSS (Ours) 87.18 89.77 50.13 56.04
+Whole Dataset 95.62 78.83
+Table 3: Comparison with SSAL approaches.
+The green (red) arrow represents the improve-
+ment (decrease) compared to the random sam-
+pling method.
+Method FlexMatch FreeMatch
+Stratified 91.45 95.05
+Random 87.30 93.41
+CoreSetSSL 87.66 ↑ 0.36 91.24 ↓ 2.17
+MMA 74.61 ↓ 12.69 87.37 ↓ 6.04
+CBSSAL 86.58 ↓ 0.72 91.68 ↓ 1.73
+TOD-Semi 86.21 ↓ 1.09 90.77 ↓ 2.64
+RDSS (Ours) 94.69 ↑ 7.39 95.05 ↑ 1.64
+Third, we directly compare RDSS with the above AL/SSAL approaches when applied to SSL,
+which may better reflect the paradigm differences. The experimental results and analysis are in the
+Appendix D.6.
+7.4 Trade-off Parameter α
+We analyze the effect of different α with Freematch on CIFAR-10/100. The results are presented
+in Table 4, from which we have several observations: (1) Our proposed RDSS achieves the highest
+accuracy under all budget conditions, surpassing those that employ a fixed value; (2) The α that
+achieve the best or the second best performance are within the interval we set, which is in line with
+our theoretical derivation in Section 6; (3) The experimental outcomes exhibit varying degrees of
+reduction compared to our approach when the representativeness or diversity term is removed.
+Table 4: Effect of different α. The grey results indicate that the α is outside the interval we set 
+
+===== PAGE 10 =====
+8 Conclusion
+In this work, we propose a model-free sampling method, RDSS, to select a subset from unlabeled data
+for annotation in SSL. The primary innovation of our approach lies in the introduction of α-MMD,
+designed to evaluate the representativeness and diversity of selected samples. Under a low-budget
+setting, we develop a fast and efficient algorithm GKHR for this problem using the Frank-Wolfe
+algorithm. Both theoretical analyses and empirical experiments demonstrate the effectiveness of
+RDSS. In future research, we would like to apply our methodology to scenarios where labelling is
+cost-prohibitive, such as in the medical domain.
+Acknowledgements
+This research was partially supported by National Natural Science Foundation of China under grant
+No. 82202984, Zhejiang Key R &D Program of China under grants No. 2023C03053 and No.
+2024SSYS0026, and US National Science Foundation under grant No. 2316011.
+References
+[1] M. Ai, J. Yu, H. Zhang, and H. Wang. Optimal subsampling algorithms for big data regressions. Statistica
+Sinica, 31(2):749–772, 2021.
+[2] N. Aronszajn. Theory of reproducing kernels. Transactions of the American mathematical society, 68(3):
+337–404, 1950.
+[3] F. Bach. Learning theory from first principles. Draft of a book, version of Sept, 6:2021, 2021.
+[4] F. Bach, S. Lacoste-Julien, and G. Obozinski. On the equivalence between herding and conditional gradient
+algorithms. arXiv preprint arXiv:1203.4523, 2012.
+[5] A. Bietti and J. Mairal. Group invariance, stability to deformations, and complexity of deep convolutional
+representations. The Journal of Machine Learning Research, 20(1):876–924, 2019.
+[6] Y .-C. Chan, M. Li, and S. Oymak. On the marginal benefit of active learning: Does self-supervision eat its
+cake? In ICASSP 2021-2021 IEEE International Conference on Acoustics, Speech and Signal Processing
+(ICASSP), pages 3455–3459. IEEE, 2021.
+[7] Y . Chen, M. Welling, and A. Smola. Super-samples from kernel herding.arXiv preprint arXiv:1203.3472,
+2012.
+[8] J. W. Cho, D.-J. Kim, Y . Jung, and I. S. Kweon. Mcdal: Maximum classifier discrepancy for active learning.
+IEEE transactions on neural networks and learning systems, 2022.
+[9] A. Coates, A. Ng, and H. Lee. An analysis of single-layer networks in unsupervised feature learning.
+In Proceedings of the fourteenth international conference on artificial intelligence and statistics, pages
+215–223. JMLR Workshop and Conference Proceedings, 2011.
+[10] J. Deng, W. Dong, R. Socher, L.-J. Li, K. Li, and L. Fei-Fei. Imagenet: A large-scale hierarchical image
+database. In 2009 IEEE conference on computer vision and pattern recognition , pages 248–255. Ieee,
+2009.
+[11] A. Freytag, E. Rodner, and J. Denzler. Selecting influential examples: Active learning with expected
+model output changes. In Computer Vision–ECCV 2014: 13th European Conference, Zurich, Switzerland,
+September 6-12, 2014, Proceedings, Part IV 13, pages 562–577. Springer, 2014.
+[12] M. Gao, Z. Zhang, G. Yu, S. Ö. Arık, L. S. Davi
+
+===== PAGE 11 =====
+[16] K. He, X. Zhang, S. Ren, and J. Sun. Deep residual learning for image recognition. In Proceedings of the
+IEEE conference on computer vision and pattern recognition, pages 770–778, 2016.
+[17] S. Huang, T. Wang, H. Xiong, J. Huan, and D. Dou. Semi-supervised active learning with temporal
+output discrepancy. In Proceedings of the IEEE/CVF International Conference on Computer Vision, pages
+3447–3456, 2021.
+[18] A. J. Joshi, F. Porikli, and N. Papanikolopoulos. Multi-class active learning for image classification. In
+2009 ieee conference on computer vision and pattern recognition, pages 2372–2379. IEEE, 2009.
+[19] A. Krizhevsky, G. Hinton, et al. Learning multiple layers of features from tiny images. 2009.
+[20] S. Laine and T. Aila. Temporal ensembling for semi-supervised learning. In International Conference on
+Learning Representations, 2016.
+[21] D.-H. Lee et al. Pseudo-label: The simple and efficient semi-supervised learning method for deep neural
+networks. In Workshop on challenges in representation learning, ICML, volume 3, page 896. Atlanta,
+2013.
+[22] D. D. Lewis and J. Catlett. Heterogeneous uncertainty sampling for supervised learning. In Machine
+learning proceedings 1994, pages 148–156. Elsevier, 1994.
+[23] M. Li, R. Wu, H. Liu, J. Yu, X. Yang, B. Han, and T. Liu. Instant: Semi-supervised learning with
+instance-dependent thresholds. In Thirty-seventh Conference on Neural Information Processing Systems,
+2023.
+[24] Z. Liu, H. Ding, H. Zhong, W. Li, J. Dai, and C. He. Influence selection for active learning. In Proceedings
+of the IEEE/CVF International Conference on Computer Vision, pages 9274–9283, 2021.
+[25] S. L. Lohr. Sampling: design and analysis. Chapman and Hall/CRC, 2021.
+[26] W. Luo, A. Schwing, and R. Urtasun. Latent structured active learning. Advances in Neural Information
+Processing Systems, 26, 2013.
+[27] R. Mahmood, S. Fidler, and M. T. Law. Low budget active learning via wasserstein distance: An integer
+programming approach. arXiv preprint arXiv:2106.02968, 2021.
+[28] S. Mak and V . R. Joseph. Support points. The Annals of Statistics, 46(6A):2562–2592, 2018.
+[29] K. Muandet, K. Fukumizu, B. Sriperumbudur, B. Schölkopf, et al. Kernel mean embedding of distributions:
+A review and beyond. Foundations and Trends® in Machine Learning, 10(1-2):1–141, 2017.
+[30] Y . Netzer, T. Wang, A. Coates, A. Bissacco, B. Wu, and A. Y . Ng. Reading digits in natural images with
+unsupervised feature learning. 2011.
+[31] V . I. Paulsen and M. Raghupathi. An introduction to the theory of reproducing kernel Hilbert spaces ,
+volume 152. Cambridge university press, 2016.
+[32] L. Pronzato. Performance analysis of greedy algorithms for minimising a maximum mean discrepancy.
+arXiv preprint arXiv:2101.07564, 2021.
+[33] A. Radford, J. W. Kim, C. Hallacy, A. Ramesh, G. Goh, S. Agarwal, G. Sastry, A. Askell, P. Mishkin,
+J. Clark, et al. Learning transferable visual models from natural language supervision. In International
+conference on machine learning, p
+
+===== PAGE 12 =====
+[38] Q. Shao, K. Zhang, B. Du, Z. Li, Y . Wu, Q. Chen, J. Wu, and J. Chen. Comprehensive subset selection for
+ct volume compression to improve pulmonary disease screening efficiency. In Artificial Intelligence and
+Data Science for Healthcare: Bridging Data-Centric AI and People-Centric Healthcare, 2024.
+[39] S. Sinha, S. Ebrahimi, and T. Darrell. Variational adversarial active learning. In Proceedings of the
+IEEE/CVF International Conference on Computer Vision, pages 5972–5981, 2019.
+[40] K. Sohn, D. Berthelot, N. Carlini, Z. Zhang, H. Zhang, C. A. Raffel, E. D. Cubuk, A. Kurakin, and C.-L.
+Li. Fixmatch: Simplifying semi-supervised learning with consistency and confidence. Advances in neural
+information processing systems, 33:596–608, 2020.
+[41] L. Song, J. Huang, A. Smola, and K. Fukumizu. Hilbert space embeddings of conditional distributions
+with applications to dynamical systems. In Proceedings of the 26th Annual International Conference on
+Machine Learning, pages 961–968, 2009.
+[42] S. Song, D. Berthelot, and A. Rostamizadeh. Combining mixmatch and active learning for better accuracy
+with fewer labels. arXiv preprint arXiv:1912.00594, 2019.
+[43] B. K. Sriperumbudur, K. Fukumizu, A. Gretton, B. Schölkopf, and G. R. Lanckriet. On the empirical
+estimation of integral probability metrics. 2012.
+[44] I. Sutskever, J. Martens, G. Dahl, and G. Hinton. On the importance of initialization and momentum in
+deep learning. In International conference on machine learning, pages 1139–1147. PMLR, 2013.
+[45] A. Tarvainen and H. Valpola. Mean teachers are better role models: Weight-averaged consistency targets
+improve semi-supervised deep learning results. Advances in neural information processing systems, 30,
+2017.
+[46] S. K. Thompson. Sampling, volume 755. John Wiley & Sons, 2012.
+[47] S. Tong and D. Koller. Support vector machine active learning with applications to text classification.
+Journal of machine learning research, 2(Nov):45–66, 2001.
+[48] M. J. Wainwright. High-dimensional statistics: A non-asymptotic viewpoint , volume 48. Cambridge
+university press, 2019.
+[49] K. Wang, D. Zhang, Y . Li, R. Zhang, and L. Lin. Cost-effective active learning for deep image classification.
+IEEE Transactions on Circuits and Systems for Video Technology, 27(12):2591–2600, 2016.
+[50] X. Wang, L. Lian, and S. X. Yu. Unsupervised selective labeling for more effective semi-supervised
+learning. In European Conference on Computer Vision, pages 427–445. Springer, 2022.
+[51] X. Wang, Z. Wu, L. Lian, and S. X. Yu. Debiased learning from naturally imbalanced pseudo-labels. In
+Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, pages 14647–
+14657, 2022.
+[52] Y . Wang, H. Chen, Y . Fan, W. Sun, R. Tao, W. Hou, R. Wang, L. Yang, Z. Zhou, L.-Z. Guo, et al. Usb: A
+unified semi-supervised learning benchmark for classification. Advances in Neural Information Processing
+Systems, 35:3938–3961, 2022.
+[53] Y . Wang, H. Chen, Q. Heng, W. Hou, Y . Fan, Z. Wu, 
+
+===== PAGE 13 =====
+[59] L. Yang, Z. Zhao, L. Qi, Y . Qiao, Y . Shi, and H. Zhao. Shrinking class space for enhanced certainty in
+semi-supervised learning. In Proceedings of the IEEE/CVF International Conference on Computer Vision,
+pages 16187–16196, 2023.
+[60] D. Yoo and I. S. Kweon. Learning loss for active learning. In Proceedings of the IEEE/CVF conference on
+computer vision and pattern recognition, pages 93–102, 2019.
+[61] J. Yu, H. Wang, M. Ai, and H. Zhang. Optimal distributed subsampling for maximum quasi-likelihood
+estimators with massive data. Journal of the American Statistical Association, 117(537):265–276, 2022.
+[62] S. Zagoruyko and N. Komodakis. Wide residual networks. In Procedings of the British Machine Vision
+Conference 2016. British Machine Vision Association, 2016.
+[63] B. Zhang, Y . Wang, W. Hou, H. Wu, J. Wang, M. Okumura, and T. Shinozaki. Flexmatch: Boosting
+semi-supervised learning with curriculum pseudo labeling. Advances in Neural Information Processing
+Systems, 34:18408–18419, 2021.
+[64] H. Zhang and S. X. Chen. Concentration inequalities for statistical inference. Communications in
+Mathematical Research, 37(1):1–85, 2021.
+[65] J. Zhang, C. Meng, J. Yu, M. Zhang, W. Zhong, and P. Ma. An optimal transport approach for selecting a
+representative subsample with application in efficient kernel density estimation. Journal of Computational
+and Graphical Statistics, 32(1):329–339, 2023.
+[66] M. Zhang, Y . Zhou, Z. Zhou, and A. Zhang. Model-free subsampling method based on uniform designs.
+IEEE Transactions on Knowledge and Data Engineering, 2023.
+13
+
+===== PAGE 14 =====
+A Algorithms
+A.1 Derivation of Generalized Kernel Herding (GKH)
+Proof. The proof technique is borrowed from [32]. Let us firstly define a weighted modification of
+α-MMD. For any w ∈ Rn such that w⊤1 = 1, the weighted α-MMD is defined by
+MMD2 k,α,Xn (w) = w⊤Kw − 2αw⊤p + α2K,
+where K = [k(xi, xj)]1≤i,j≤n, K = 1⊤K1/n2, p = (e⊤ 1 K1/n, · · ·, e⊤ n K1/n), {ei}n i=1 is the set
+of standard basis of Rn. It is obvious that for any Ip ⊂ [n],
+MMD2 k,α,Xn (wp) = MMD2 k,α(XIp , Xn),
+where (wp)i = 1 /p if i ∈ Ip, and (wp)i = 0 if not. Therefore, weighted α-MMD is indeed a
+generalization of α-MMD. Let
+K∗ = K − 2αp1⊤ + α2K11⊤
+we obtain the quadratic form expression of weighted α-MMD by MMD2 k,α,Xn (w) = w⊤K∗w, where K∗ is strictly positive definite if w ̸= wn and k is a characteristic kernel according to [32].
+Recall our low-budget setting and choice of kernel, K∗ is indeed a strictly positive definite matrix.
+Thus MMD2 k,α,Xn is a convex functional w.r.t.w, leading to the fact thatminw⊤1=1 MMD2 k,α,Xn (w) can be solved by Frank-Wolfe algorithm. Then for 1 ≤ p < n,
+sp ∈ arg min
+s⊤1=1
+s⊤(Kwp − αp) = arg min
+ei,i∈[n]
+e⊤ i (Kwp − αp).
+Let eip = sp, under uniform step size, we have
+wp+1 =
+ p
+p + 1
+
+wp + 1 p + 1eip
+as the update formula of Frank-Wolfe algorithm, which is equivalent to
+i∗ p ∈ arg min i∈[n] X j∈Im k(xi, xj) − αp nX l=1 k(xi, xl).
+Set w0 = 0, we immediately derive the iterating formula in (7).
+A.2 Pseudo Codes
+Algorithm 2 Generalized Kernel Herding
+Require: Data set Xn = {x1, · · ·, xn} ⊂ X; the number of selected samples m < n; a positive
+definite, characteristic and radial kernel k(·, ·) on X × X; trade-off parameter α ≤ 1.
+Ensure: selected samples XI∗m = {xi∗ 1 , · · ·, xi∗m}.
+1: For each xi ∈ Xn calculate µ(xi) := Pn j=1 k(xj, xi)/n.
+2: Set β1 = 1, S0 = 0, I = ∅.
+3: for p ∈ {1, · · ·, m} do
+4: i∗ p ∈ arg mini∈[n] Sp−1(xi) − αµ(xi)
+5: For all i ∈ [n], update Sp(xi) = (1 − βp)Sp−1(xi) + βpk(xi∗p , xi)
+6: I ∗ p+1 ← I∗ p ∪ {i∗ p}, p ← p + 1, set βp = 1/p.
+7: end for
+B Technical Lemmas
+Lemma B.1 (Lemma 2 [32]). Let (tk)k and (αk)k be two real positive sequences and A be a strictly positive real. If tk satisfies
+t1 ≤ A and tk+1 ≤ (1 − αk+1) tk + Aα2 k+1, k≥ 1,
+with αk = 1/k for all k, then tk < A(2 + logk)/(k + 1) for all k >1.
+14
+
+===== PAGE 15 =====
+Lemma B.2. The selected samples XI∗m generated by GKH (Algorithm 2) satisfies
+MMD2 k,α   XI∗m, Xn  ≤ M 2 α + B 2 + logm m + 1 (10)
+where B = 2K, 0 ≤ maxx∈X k(x, x) ≤ K, M 2 α is defined by
+M 2 α := min w⊤1=1,w≥0 MMD2 k,α,Xn (w)
+Proof. Following the notations in Appendix A, let pα = αp, we could straightly follow the proof
+for finite-sample-size error bound of kernel herding with predefined step sizes given by [32] to derive
+Lemma B.2, without any other technique. The detailed proof is omitted.
+Lemma B.3. Let H be an RKHS over X associated with positive definite kernel k, and 0 ≤
+maxx∈X k(x, x) ≤ K. Let Xm = {xi}m i=1, Yn = {yj}m j=1, xi, yj ∈ X. Then for any α ≤ 1,
+| MMDk,α(Xm, Yn) − MMDk(Xm, Yn)| ≤(1 − α)
+√
+K
+Proof.
+|MMDk,α(Xm, Yn) − MMDk(Xm, Yn)|
+=
+ sup ∥f ∥H≤1   1 m mX i=1 f (xi) − α n nX j=1 f (yj)   − sup ∥f ∥H≤1   1 m mX i=1 f (xi) − 1 n nX j=1 f (yj)   
+≤ sup
+∥f ∥H≤1
+ 1 − α n nX i=1 f (yi)  =  1 − α n  sup ∥f ∥H≤1  nX i=1 f (yi) 
+=
+ 1 − α
+n
+
+sup
+∥f ∥H≤1
+ nX j=1 ⟨f, k(·, yj)⟩H  ≤  1 − α n  sup ∥f ∥H≤1 nX j=1 ⟨f, k(·, yj)⟩H 
+≤
+ 1 − α
+n
+
+sup
+∥f ∥H≤1
+nX
+j=1
+∥f ∥H∥k(·, yj)∥H ≤ (1 − α)
+√
+K.
+Lemma B.4 (Proposition 12.31 [ 48]). Suppose that H1 and H2 are reproducing kernel Hilbert
+spaces of real-valued functions with domains X1 and X2, and equipped with kernels k1 and k2,
+respectively. Then the tensor product space H = H1 ⊗ H2 is an RKHS of real-valued functions with
+domain X1 × X2, and with kernel function
+k ((x1, x2) , (x′ 1, x′ 2)) = k1 (x1, x′ 1) k2 (x2, x′ 2) .
+Lemma B.5 (Theorem 5.7 [31]). Let f ∈ H1 and g ∈ H2, where H1, H2 be two RKHS containing
+real-valued functions on X , which is associated with positive definite kernel k1, k2 and canonical
+feature map ϕ1, ϕ2, then for any x ∈ X,
+f (x) + g(x) = ⟨f, ϕ1(x)⟩H1 + ⟨g, ϕ2(x)⟩H2 = ⟨f + g, (ϕ1 + ϕ2)(x)⟩H1+H2 ,
+where
+H1 + H2 = {f1 + f2|fi ∈ Hi}
+and ϕ1 + ϕ2 is the canonical feature map of H1 + H2. Furthermore,
+∥f + g∥2 H1+H2 ≤ ∥f ∥2 H1 + ∥g∥2 H2 .
+Lemma B.6. For any unlabeled dataset Xn ⊂ Xand any subset XIm,
+MMD2 k,α(Xn, Xn) = (1 − α)2K, MMD2 k,α(XIm, Xn) ≤ (1 + α2)K,
+where K = Pn i=1 Pn j=1 k(xi, xj)/n2, K = maxx∈X k(x, x).
+Lemma B.6 is directly derived from the definition of α-MMD.
+15

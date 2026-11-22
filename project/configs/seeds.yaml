@@ -1,0 +1,8 @@
+# 全局种子统一入口（§B4）。任何脚本不得硬编码种子，必须读本文件。
+# 两类随机性分开记录：
+#   - 选择种子 SELECTION_SEEDS：random 的抽样、k-center 的初始中心；RDSS/GKHR 完全确定性，该维度退化（报告须说明）
+#   - 训练种子 TRAIN_SEEDS：FixMatch 权重初始化、数据顺序、弱/强增强
+SELECTION_SEEDS: [42, 1234, 12345]
+TRAIN_SEEDS: [42, 1234, 12345]
+VAL_SEED: 0            # 固定验证集划分 seed，与 data.yaml: split.val_seed 必须一致
+TEST_SEED: 0           # 测试集不使用随机性，保留字段仅用于日志完整性

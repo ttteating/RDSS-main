@@ -1,0 +1,49 @@
+# 统一 FixMatch 配置：random / k-center / RDSS 三种选样方法完全一致（§A5.1）
+# 任何一项改动都必须写进本文件并说明原因；训练使用时脚本会把本文件快照到 results/.../config.yaml
+fixmatch:
+  # —— 半监督核心超参 ——
+  tau: 0.9                    # 伪标签高置信度阈值（FixMatch 默认）
+  lambda_u: 1.0               # 无标签损失权重
+  mu: 7                       # 无/有标签 batch 比 → batch_unlabeled = 64 × 7 = 448
+  # —— 训练预算（课程缩减版）——
+  # 1 epoch = 一次未标注池遍历（m=250 时 44750/448 ≈ 100 step；m=1000 时 ≈ 98 step），
+  # 这样 eval_step=500 才落在有意义的位置；100 epochs ≈ 1e4 step。
+  epochs: 100                 # 若单 epoch > 5 min 可降到 50，须在报告注明
+  eval_step: 500              # 每 500 step 在验证集评估，保存验证 Acc 最高的 checkpoint
+  # —— 优化器（论文 7.1）——
+  optimizer: SGD
+  lr: 0.03
+  momentum: 0.9
+  weight_decay: 5e-4
+  nesterov: true              # §A5.1 未列；FixMatch/USB 官方实现用 nesterov=True，三方法共享
+  lr_scheduler: cosine
+  # —— 主干 ——
+  backbone: WRN-28-2
+  # —— batch 与精度 ——
+  batch_size_labeled: 64
+  batch_unlabeled: 448        # = batch_size_labeled × mu，脚本须校验一致性
+  num_workers: 4
+  amp: true                   # 8GB 显存（RTX 4060 Laptop）下必须开；显存不足先减 batch 再梯度累积
+  # —— 数据增强 ——
+  weak_augment:
+    - RandomCrop: {size: 32, padding: 4}
+    - RandomHorizontalFlip
+    - ToTensor
+    - Normalize: {mean: [0.4914, 0.4822, 0.4465], std: [0.2470, 0.2435, 0.2616]}
+  strong_augment:
+    - RandAugment: {n: 2, m: 10}       # 或 CTAugment，二选一；本配置固定 RandAugment
+    - RandomCrop: {size: 32, padding: 4}
+    - RandomHorizontalFlip
+    - ToTensor
+    - Normalize: {mean: [0.4914, 0.4822, 0.4465], std: [0.2470, 0.2435, 0.2616]}
+
+# —— 模型选择与评估 ——
+model_selection:
+  monitor: val_acc            # 验证集唯一用途=选最佳 checkpoint（§A5.2）
+  save_best_only: true
+  test_usage: final_report_only
+
+# —— 断点与可追溯（§B3）——
+checkpoint:
+  save: [model, optimizer, scheduler, scaler, epoch, step, rng_state]
+  output_files: [train.log, best_model.pth, metrics.json, config.yaml]

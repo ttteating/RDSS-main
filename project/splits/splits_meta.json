@@ -1,0 +1,22 @@
+{
+  "created": "2026-11-21T23:04:36",
+  "val_seed": 0,
+  "n_total": 50000,
+  "val_size": 5000,
+  "train_pool_size": 45000,
+  "test_size": 10000,
+  "files": {
+    "val_indices_seed0.json": {
+      "rows": 5000,
+      "sha1": "bf6e73ba144a68507a057ab83a603667ac00db02"
+    },
+    "trainpool_indices_seed0.json": {
+      "rows": 45000,
+      "sha1": "6aed9ad4dc3524f5544ee6c1c39ed4e71b8292ef"
+    },
+    "test_indices.json": {
+      "rows": 10000,
+      "sha1": "2d4d66c098b14d02eadd721a4c60675a577b4121"
+    }
+  }
+}

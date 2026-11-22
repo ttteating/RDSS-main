@@ -1,0 +1,29 @@
+# 三种选择器配置（P2 使用；P0 固定口径与命名）
+selection:
+  feature_source: features/cifar10_trainpool_clip.npy   # 三方法共享同一份特征，禁止各自重算
+  pool_size: 45000
+  budgets: [250, 1000]
+  output_naming: "selections/{method}_m{budget}{seed_suffix}.json"
+  # seed_suffix：random/k-center 为 _s{selection_seed}；RDSS 为确定性，无后缀（消融时 _alpha{value}）
+  no_label_access: true          # 选择过程禁止读取标签；标签仅在选完后加载用于训练/诊断
+
+  methods:
+    random:
+      seeds_source: configs/seeds.yaml#SELECTION_SEEDS
+      replace: false              # 无放回采样
+      implementation: "np.random.RandomState(seed).choice(n, size=m, replace=False)"
+    kcenter:
+      kind: core-set greedy       # 课程新增基线，非论文原基线（A7-3）
+      seeds_source: configs/seeds.yaml#SELECTION_SEEDS
+      init: random_one_point      # 第一个中心随机初始化，故结果依赖选择种子
+    rdss:
+      alias: GKHR                 # 论文 Algorithm 1
+      alpha: auto                 # 见 kernel.yaml: alpha
+      deterministic: true         # 无选择种子；仅训练种子引入随机性
+      mu_diagonal: include        # 与 kernel.yaml 保持一致，一致性测试后可覆写
+      implementation: "scripts/selection_rdss.py（O(m·n) 增量骨架，见 §A4）"
+      reference_impl: RDSS.py     # 根目录官方实现，仅用于一致性测试，不用于主实验
+
+# 记录要求（§B4）：每次选择都要写 selection_log 到同一目录
+logging:
+  save: [indices, alpha, gamma, sigma, elapsed_sec, n_pool, budget, selector_seed, feature_file_sha1]

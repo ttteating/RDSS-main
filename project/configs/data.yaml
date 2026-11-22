@@ -1,0 +1,43 @@
+# 数据、划分与特征配置（P1 使用；P0 只负责把口径固定下来）
+data:
+  dataset: CIFAR-10
+  root: ./data                 # CIFAR-10 下载根目录（torchvision 布局）
+  download: true
+  num_classes: 10
+
+  # 划分：50000 训练集 → 5000 验证 + 45000 训练池；10000 官方测试集
+  split:
+    val_size: 5000
+    train_pool_size: 45000
+    test_size: 10000
+    val_seed: 0                # 必须等于 seeds.yaml: VAL_SEED
+    files:                     # 三种选择方法共享，禁止各自重新划分
+      val_indices: splits/val_indices_seed0.json
+      trainpool_indices: splits/trainpool_indices_seed0.json
+      test_indices: splits/test_indices.json
+
+  # 测试集唯一用途 = 最终报告一次；不得用于调参/早停/阈值选择
+  test_usage: final_report_only
+
+# CLIP 特征抽取口径（P1 使用，三方法必须同一种，中途不换）
+features:
+  model: openai/clip-vit-base-patch32     # HuggingFace 自动下载，替换官方本地 ./clip-vit-base-patch32
+  take: cls_last_hidden                   # cls_last_hidden = final [CLS]（论文口径）；pooler_output = 官方 get_cifar_feature.py 口径
+  resize: 224
+  pixel_normalize: false                  # 官方 Resize+ToTensor，不加 Normalize（CLIP 内部自带）
+  l2_normalize: true                      # 工程建议（§A2）：L2 归一化后再算距离，否则 σ 失去意义
+  dtype: float32
+  batch_size: 256
+  files:
+    trainpool: features/cifar10_trainpool_clip.npy   # [45000, 768]
+    test: features/cifar10_test_clip.npy             # [10000, 768]
+
+# 相对路径基准 = project/ 目录
+paths:
+  project_root: .
+  splits_dir: splits
+  features_dir: features
+  selections_dir: selections
+  results_dir: results
+  figures_dir: figures
+  checkpoints_dir: results/checkpoints

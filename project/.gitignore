@@ -1,0 +1,19 @@
+# 数据与中间产物（体积大，不入库）
+data/
+features/
+splits/
+selections/
+figures/
+results/*
+!results/.gitkeep
+
+# 权重与环境产物
+*.pth
+*.pkl
+*.npy
+*.npz
+hardware_report.txt
+__pycache__/
+*.pyc
+.venv/
+venv/

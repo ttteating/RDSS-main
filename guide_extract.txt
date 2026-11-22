@@ -1,0 +1,572 @@
+﻿指导书总页数: 19
+
+===== PAGE 1 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+1
+《深度学习》课程期末项目指导书
+科研复现 代码实践 实验分析 论文写作
+你需要完成的核心任务
+ 读懂一篇近三年高水平论文，并用自己的语言解释研究问题与方法。
+ 在课程规模数据上建立基线，复现论文的主要性能指标。
+ 完成至少一项消融、一项效率统计和一项误差或失败分析。
+ 提交可复现代码、实验记录、论文复现报告和答辩材料。
+项目总体说明
+本学期课程项目以“复现并分析一篇近两年高水平论文”为核心任务。每位同学需在给定范
+围内选择一篇主参考文献，基于其公开代码完成复现，并在此基础上进行至少一项扩展分析（如
+消融实验、鲁棒性测试、跨数据集评估等）。项目全程模拟真实科研流程：从环境搭建、代码复
+现、实验设计，到结果分析、论文写作和口头答辩。
+选题原则：所有推荐论文均满足以下条件——发表于2024–2026 年（含CVPR、ICLR、
+IEEE 等高水平会议/期刊论文）；主参考文献有公开可用的代码仓库；模型规模适中，适合本科生
+在6–9 周内完成。项目时间安排：
+周次 阶段 关键任务
+第7 周 选题与方案 确定项目、提交1 页项目计划书
+第8 周 环境搭建与代码复现 跑通baseline、复现论文主结果
+第9–12 周 实验与分析 完成扩展实验、消融研究、结果整理
+第11–15 周 论文复现报告写作 撰写项目报告（NeurIPS/ICLR 格式）
+第16-18 周 答辩与提交 PPT 汇报（10 分钟）+ 提交最终报告与代码
+
+===== PAGE 2 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+2
+如何使用本指导书
+本项目不是只追求一个最高准确率。你需要完成完整的小型科研闭环：提出可检验问题，建
+立公平基线，复现核心方法，分析结果与成本，最后写成他人能够核查的小论文。先阅读本节和
+项目总览，再选择一个项目进入实施。
+阅读顺序
+先后 阅读内容 完成动作
+1 第1-3 节 了解最低要求、科研流程与选题差异
+2 一个项目章节 与组员讨论数据、基线、资源和风险
+3 进度与提交要求 建立仓库、分工表和第一周计划
+4 评分与自检 在开题前确认所有证据都能保留
+目录
+章节 主题 你将得到
+1 你要完成什么 最低完成线、分组与个人责任
+2 科研项目八步法 从问题定义到论文答辩
+3 项目总览 难度、数据、算力与选题建议
+4—8 五个项目 结构、损失、实验、步骤和文献
+9 进度与提交 8 周计划、仓库、实验记录、论文结构
+10 评分与自检 评分标准、诚信要求、答辩准备
+
+===== PAGE 3 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+3
+1 你要完成什么
+1.1 最低完成线
+• 方法：至少包含一个可靠基线、主方法和一个关键消融。
+• 统计：主结果至少运行3 个随机种子；TabM 项目运行5 个种子。
+• 分析：同时报告任务性能、资源成本和错误或失败案例。
+• 复现：每张主表都能追溯到配置、日志、代码版本和运行命令。
+• 写作：按照学术论文格式撰写和绘制图表，明确区分论文原设置与课程缩减设置。
+1.2 分组与个人责任
+角色 主要责任 必须留下的证据
+项目协调 维护周计划、问题清单和最终提交 周报、会议记录、提交清单
+数据与评测 数据下载、划分、指标与泄漏检查 数据脚本、划分索引、指标测试
+模型与训练 基线、主方法、配置和断点恢复 配置、训练日志、模型测试
+实验与写作 汇总脚本、图表、误差分析和论文 原始结果、绘图脚本、论文版本
+要求：角色可轮换，但所有成员都必须能解释数据划分、核心方法、关键代码和主要结论。
+1.3 课程规模复现
+层级 目标 完成标志
+A 运行复核 跑通仓库和最小样例 环境、数据和单批前向无错误
+B 核心复现 在缩小预算下复现关键相对趋势 公平基线、3 个种子、结果可追溯
+C 研究拓展 增加一个有动机的改进或深入分析 预先写出假设，结果支持或否定均可
+重要边界：课程规模结果不能直接等同于论文在ImageNet、DomainNet 或完整医疗场景中的
+结果。报告必须列出数据、分辨率、训练轮数和主干等差异。
+2 科研项目八步法
+步骤 你要做什么
+01 问题卡 用一句话写研究问题；列出自变量、因变量、控制变量和成功判据。
+02 论文拆解 先读摘要、方法图和主结果表，再回读公式和附录；输出一页论文结构卡。
+03 仓库审计 记录代码版本、许可证、环境、数据来源和预训练权重；先运行最小样例。
+04 基线先行 固定划分与预处理，先获得稳定基线；基线不稳定时不要继续叠加方法。
+05 核心复现 一次只改变一个因素；每次保存配置、日志、随机种子和代码版本。
+
+===== PAGE 4 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+4
+步骤 你要做什么
+06 消融与统计 去掉或替换一个关键组件；报告均值、标准差和负结果。
+07 误差与成本 检查失败样本或子群；同时记录参数量、显存、时间或延迟。
+08 论文与答辩 用证据回答假设；提供复现命令、限制和个人贡献。
+每次实验必须记录
+• 代码：Gitcommit、运行命令、配置文件、是否修改官方实现。
+• 环境：Python、PyTorch、CUDA、GPU、混合精度和批大小。
+• 数据：版本、划分、随机种子、预处理和数据增强。
+• 输出：训练曲线、最佳权重、逐样本预测、指标文件、时长和显存峰值。
+3 五个项目总览
+项目 主要能力 公开数据 难 度 显存建 议 最小成果
+1EfficientViM 网络结构、效率测量 CIFAR-100/ Tiny-ImageNet 中高 8-14GB 精度-成本曲线
+2GGA 域泛化、梯度分析 PACS/VLCS 高 10-18GB 留一域结果与梯度曲线
+3RDSS 样本选择、半监督 CIFAR-10 高 8-14GB 性能-标签预算曲线
+4 医疗校准 可信AI、选择性预测 MedMNIST 中 4-8GB 可靠性图与风险覆盖
+5TabM 表格建模、集成统计 OpenML/ sklearn 中低 CPU/4- 8GB 性能-成员数曲线
+选择建议
+• 第一次独立训练图像模型，希望稳妥完成：优先项目4。
+• 显卡时间有限，希望把统计实验做扎实：优先项目5。
+• 已有PyTorch 分类经验，想练结构复现和部署指标：选择项目1。
+• 熟悉自动微分，愿意投入更多调试时间：选择项目2。
+• 对数据价值、主动学习和半监督学习感兴趣：选择项目3。
+选题前自问
+• 我们是否能在两周内跑通官方代码或最小实现？
+• 数据下载、许可证和磁盘空间是否明确？
+• 如果主方法失败，我们仍能提交哪些有价值的分析？
+• 三种子和消融实验的总运行次数是否超过可用算力？
+
+===== PAGE 5 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+5
+PROJECT 01 · CVPR 2025
+项目 1｜EfficientViM：轻量视觉模型复现与效率分析
+在小规模图像数据上复现 EfficientViM 的核心结构思想，并回答：更复杂的视觉状态空间模块，
+是否在同等资源下优于经典轻量 CNN？
+项目标签 主论文 建议资源
+视觉分类· 高效网
+络·Mamba/SSM· 系统测量
+EfficientViM:EfficientVision
+MambawithHiddenStateMixer
+basedStateSpaceDuality
+3090/L40；建议8—14GB；单
+次课程规模训练约1—6 小时
+官方代码：https://github.com/mlvlab/EfficientViM
+研究问题与可检验假设
+ H1：在相近参数量/FLOPs 下，课程规模EfficientViM 相比ResNet-18 或MobileNetV3-Small 有更
+好的准确率—成本折中。
+ H2：隐藏状态混合器（HSM）带来的增益不能仅由参数量增加解释。
+ H3：论文中的理论效率不一定等同于单张图像实测延迟；吞吐和batch-1 延迟可能给出不同排
+序。
+图 1 项目 1 的课程规模网络结构。橙色模块是核心复现对象；通道数与重复次数可缩小。
+结构与损失函数
+建议使用作者M1 配置作为结构参照，但在CIFAR-100/Tiny-ImageNet 上缩减stage 深度和训
+练轮数。主干由卷积stem、多阶段局部卷积与状态空间混合块、全局池化和线性分类头构成。不
+要宣称课程结果复现了论文的ImageNet 数字。
+LCE=−(1/B)Σᵢlogps(yᵢ|xᵢ)
+必做：交叉熵基线；类别均衡数据无需额外类别权重。
+LKD=(1−λ)LCE+λT²KL(softmax(zt/T)‖softmax(zs/T))
+选做：知识蒸馏。教师网络、T 和λ 必须写入配置，并与不蒸馏版本公平比较。
+
+===== PAGE 6 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+6
+数据、基线与实验矩阵
+要素 最低要求 推荐拓展
+数据 CIFAR-100；固定官方训练/测试划分，训练集再划 10% 验证 Tiny-ImageNet64×64
+模型 ResNet-18、MobileNetV3-Small、课程规模 EfficientViM 原仓库M1 预训练评估；自定义 mini 版本
+训练 100—150epoch，AdamW 或SGD；同等增强与调参 预算；3 种子 Mixup/CutMix；蒸馏
+指标 Top-1、参数量、FLOPs、显存峰值、训练时间 吞吐、batch-1 延迟、能耗代理
+图表 准确率—参数量散点图；训练曲线；延迟表 Pareto 前沿；不同batch 的吞吐曲线
+完整指导步骤：
+1. 读主论文图1/方法/效率表，列出HSM、SSD、stage 配置与分类头之间的关系。
+2. 克隆官方仓库并固定commit；先运行模型构建和单批前向，打印各stage 张量尺寸。
+3. 建立统一训练器：数据增强、优化器、调度器和早停在三个模型间完全一致。
+4. 先训练ResNet-18；若3 个种子波动过大，检查划分、BN、学习率和数据增强。
+5. 实现/适配课程规模EfficientViM；做“去掉HSM 或以等容量卷积替代”的消融。
+6. 效率测量前预热50—100 次；CUDA 同步；固定输入大小、batch 和精度格式。
+7. 保存逐类准确率和混淆矩阵，找出结构改进最明显/最差的类别并解释。
+8. 写作时把“论文原设置”和“本课程设置”放在并列表中，避免不当等价。
+最低完成线、优秀拓展与风险
+层级 内容
+最低完成线 三模型× 三种子；HSM 一项消融；精度与资源指标齐全；提供复现命令。
+优秀拓展 蒸馏或量化感知训练；研究输入分辨率/批大小对真实延迟的影响；建立Pareto 前 沿。
+常见风险 直接训练完整ImageNet 配方导致超时；只报FLOPs 不测延迟；不同模型使用不同 增强和调参预算。
+必读文献（主文献代码公开）
+1.Leeetal.EfficientViM:EfficientVisionMambawithHiddenStateMixerbasedStateSpaceDuality.
+CVPR,2025. 论文 ｜ 代码 主参考；优先阅读官方配置与复杂度测量。
+2.Liuetal.VMamba:VisualStateSpaceModel.NeurIPS,2024. 论文 ｜ 代码
+3.Hatamizadehetal.MambaVision:AHybridMamba-TransformerVisionBackbone.CVPR,2025. 论
+
+===== PAGE 7 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+7
+文 ｜ 代码
+4.Shietal.Multi-ScaleVMamba:HierarchyinHierarchyVisualStateSpaceModel.NeurIPS,2024. 论
+文
+5.Touvronetal.TrainingData-EfficientImageTransformers&DistillationthroughAttention.ICML,
+2021. 论文 ｜ 代码
+PROJECT 02 · CVPR 2025
+项目 2｜GGA：域泛化中的梯度一致性
+在 PACS 或 VLCS 上复现 Gradient-Guided Annealing：训练时只见源域，通过搜索梯度更一致的参
+数邻域，提高对未见域的泛化。
+项目标签 主论文 建议资源
+域泛化· 优化· 梯度分析· 分
+布偏移
+Gradient-GuidedAnnealingfor
+DomainGeneralization
+3090/L40；建议10—18GB；
+先做1 个目标域，再扩展4 折
+官方代码：https://github.com/aristotelisballas/GGA
+问题设置与研究假设
+给定多个有标签源域S={D₁,…,Dₘ}，训练期间不能读取目标域图像、标签或统计量；测试时
+在未见目标域上评估。PACS 包含Artpainting、Cartoon、Photo、Sketch 四域，采用留一域测试。
+ H1：在相同主干和模型选择规则下，GGA 能提高目标域平均准确率或最差域准确率。
+ H2：GGA 的收益与源域梯度最小余弦相似度提高相关，但相关不等于因果。
+ H3：扰动幅度ρ 和退火窗口过大都会增加开销，甚至破坏已学表示。
+图 2 GGA 的训练逻辑。课程实现应以官方算法为准，并记录退火窗口额外开销。
+目标函数与关键统计量
+L(θ)=(1/|S|)ΣᵢLᵢ(θ)+λR(θ), gᵢ= ∇θLᵢ(θ)
+ERM 基线；每个源域单独计算损失与梯度。
+gradsim(θ)=minᵢ≠ⱼ (gᵢᵀgⱼ)/(‖gᵢ‖₂‖gⱼ‖₂)
+GGA 使用最小成对余弦相似度，关注最严重的域梯度冲突。
+
+===== PAGE 8 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+8
+θ′=θ+U(−ρ,ρ); 接受θ′ 当sim′>sim 且L(θ′)−LB<0.1
+按原论文算法：预热后，在有限训练窗口内搜索邻域；随后继续常规优化。
+课程规模实验方案
+模块 必做 扩展
+数据 PACS；先以Sketch 为目标域调通，再完成4 折 VLCS 复核
+主干 ImageNet 预训练ResNet-18；224×224 ResNet-50（资源允许时）
+方法 ERM、ERM+GGA SWAD、SWAD+GGA
+超参 ρ、As、Ae、na；所有方法同一调参预算 ρ 敏感性与退火窗口消融
+指标 各目标域准确率、平均/最差域、3 种子 梯度相似度—迭代曲线、时间开销
+完整指导步骤
+1. 画清楚数据边界：源域训练/验证、目标域测试。目标域不得用于早停和超参选择。
+2. 运行DomainBed/官方ERM 配置，先核对每个域的样本量、类数和batch 采样方式。
+3. 实现每域损失和梯度统计；用一个两域小批次单元测试余弦相似度，处理零范数和NaN。
+4. 按官方代码接入GGA：预热、退火开始/结束步、每步候选数na、扰动ρ 全部配置化。
+5. 先做单折烟雾实验，再完成4 个留一域折；每折至少3 个种子。
+6. 保存sim、损失、目标域最终指标、训练时长；不要在训练中查看目标域并据此改参数。
+7. 消融ρ∈{0, 小, 中, 大} 或窗口长度；保证总训练步数不变，单独报告搜索成本。
+8. 讨论无效或退化域：是梯度一致性没提高、提高但准确率没提高，还是模型选择偏差。
+模型选择陷阱：域泛化最容易出现“偷看目标域”。课程统一采用源域留出验证或论文规定的训练
+域模型选择；若报告oracle 结果，必须单列并标为分析上限，不能当主结果。
+最低完成线、优秀拓展与风险
+层级 内容
+最低完成线 PACS4 折、ERMvsGGA、3 种子；梯度相似度曲线；ρ 或窗口的一项消融。
+优秀拓展 与SWAD 组合；比较平均相似度和最小相似度；分析哪些层的梯度冲突最显著。
+常见风险 目标域泄漏；每域batch 不平衡；对全参数逐候选算梯度导致显存/时间爆炸；只 报最佳种子。
+必读文献（主文献代码公开）
+1.Ballas&Diou.Gradient-GuidedAnnealingforDomainGeneralization.CVPR,2025. 论文 ｜ 代码 主
+参考；严格遵循官方接受条件和训练窗口。
+2.Wangetal.BalancedDirectionfromMultifariousChoices:ArithmeticMeta-LearningforDomain
+
+===== PAGE 9 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+9
+Generalization.CVPR,2025. 论文
+3.Lietal.SeekingConsistentFlatMinimaforBetterDomainGeneralizationviaRefiningLoss
+Landscapes.CVPR,2025. 论文
+4.Gulrajani&Lopez-Paz.InSearchofLostDomainGeneralization.ICLR,2021. 论文 ｜ 代码
+5.Chaetal.SWAD:DomainGeneralizationbySeekingFlatMinima.NeurIPS,2021. 论文 ｜ 代码
+PROJECT 03 · NeurIPS 2024
+项目 3｜RDSS：低标注半监督学习的数据选择
+标签预算固定时，先从未标注池中选择“代表且多样”的样本送标，再用 FixMatch 训练；研究选
+择质量是否比随机抽样更重要。
+项目标签 主论文 建议资源
+半监督学习· 数据选
+择·MMD· 低标注
+EnhancingSemi-Supervised
+LearningviaRepresentativeand
+DiverseSampleSelection
+3090/L40；建议8—14GB；选
+择阶段轻，SSL 训练占主要成
+本
+官方代码：https://github.com/YanhuiAILab/RDSS
+研究问题与假设
+ H1：在同一标签预算、同一FixMatch 配方下，RDSS 比随机选择有更高平均准确率。
+ H2：只追求代表性会选到重复样本；加入多样性项后类别覆盖和特征覆盖更好。
+ H3：选择器的收益依赖特征质量；冻结且统一的特征抽取器是公平比较的关键。
+图 3 RDSS 与 FixMatch 的两阶段流程。选择阶段不得读取候选标签；标签只在选定后“揭示”。
+选择目标与半监督损失
+Sₖ(XI)=(1/m²)Σᵢ,ⱼ∈Ik(xᵢ,xⱼ)
+平均核相似度；值越大通常意味着所选样本越重复。
+minI MMDₖ²(XI,Xn)+λSₖ(XI), |I|=m
+MMD 约束代表性，相似度项鼓励多样性。课程实现可直接调用官方GKHR/RDSS。
+λ=(1−α)/(αm); MMD²ₖ,α=‖(1/m)Σᵢ∈I φ(xᵢ)−(α/n)Σⱼφ(xⱼ)‖²H
+
+===== PAGE 10 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+10
+α 折中总体代表性与多样性；先复现官方默认，再做敏感性。
+L=Ls+λuLu; Lu=E[(maxq≥τ)·CE(p(y|as(u)),argmaxq)]
+FixMatch：弱增强得到高置信伪标签，强增强学习一致性。
+实验矩阵
+要素 最低要求 推荐拓展
+数据/预算 CIFAR-10；m=250、1000 m=40（高难）；CIFAR-100
+选择方法 随机、k-center、RDSS 每类均匀的标签知情上限（仅分析）
+训练器 同一FixMatch 配置；3 种子；相同未标注池 FlexMatch 或更短/更长训练预算
+指标 准确率、Macro-F1、选择耗时 类分布、覆盖度、伪标签精度
+图表 性能—标签预算曲线；特征可视化 α 敏感性；重复/离群样本分析
+完整指导步骤
+1. 固定CIFAR-10 训练池和测试集；为每个种子预先保存样本索引，禁止不同方法偷偷换
+池。
+2. 选择同一冻结特征抽取器；导出所有样本特征并标准化，记录模型与权重来源。
+3. 先实现随机选择和k-center；用二维玩具数据检查“代表性/多样性”直觉。
+4. 运行官方RDSS/GKHR；验证输出索引无重复、数量等于m、过程中未使用标签。
+5. 选定后才加载这些样本的标签；对所有选择策略运行完全相同的FixMatch。
+6. 每个预算/方法做3 个种子；低标签训练方差很大，必须报告均值±标准差。
+7. 分析所选样本的类分布、最近邻距离、覆盖度；标签只可用于实验后的诊断。
+8. 若RDSS 不优于随机，区分选择问题、特征问题和半监督优化问题，并保留负结果。
+两种随机性要分开：“选哪些样本”的随机种子与“模型怎么训练”的随机种子应分别记录。建议外
+层固定3 组选择种子，内层至少1-3 组训练种子；报告预算允许范围内的嵌套方差。
+最低完成线、优秀拓展与风险
+层级 内容
+最低完成线 2 个标签预算；随机/k-center/RDSS；同一FixMatch；3 种子；选择质量与最终性 能同时分析。
+优秀拓展 研究α、自监督特征或类别不平衡；以选择时间和训练时间计算总体收益。
+常见风险 选择时使用真实标签；方法间特征抽取器不同；预算很小却只跑1 个种子；伪标 签阈值不一致。
+必读文献（主文献代码公开）
+
+===== PAGE 11 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+11
+1.Shaoetal.EnhancingSemi-SupervisedLearningviaRepresentativeandDiverseSampleSelection.
+NeurIPS,2024. 论文 ｜ 代码 主参考；复核α-MMD/GKHR 与索引生成。
+2.Sohnetal.FixMatch:SimplifyingSemi-SupervisedLearningwithConsistencyandConfidence.
+NeurIPS,2020. 论文 ｜ 代码
+3.Zhangetal.FlexMatch:BoostingSemi-SupervisedLearningwithCurriculumPseudoLabeling.
+NeurIPS,2021. 论文 ｜ 代码
+4.Sener&Savarese.ActiveLearningforConvolutionalNeuralNetworks:ACore-SetApproach.ICLR,
+2018. 论文 ｜ 代码
+5.Kirschetal.BatchBALD:EfficientandDiverseBatchAcquisitionforDeepBayesianActiveLearning.
+NeurIPS,2019. 论文 ｜ 代码
+PROJECT 04 · CVPR 2025
+项目 4｜医疗图像分类的校准与选择性预测
+准确率相同的模型，置信度可能完全不同。本项目在 MedMNIST 上复现 BSCE-GRA 的梯度校准
+思想，并建立“低置信度转人工”的风险—覆盖评估。
+项目标签 主论文 建议资源
+智慧医疗· 可信AI· 模型校
+准· 选择性预测
+UncertaintyWeightedGradients
+forModelCalibration
+3090/L40；建议4—8GB；单
+次训练约0.5—3 小时
+官方代码：https://github.com/Jinxu-Lin/BSCE-GRA
+研究问题与假设
+ H1：BSCE-GRA 在不显著牺牲AUROC/准确率的前提下，能改善ECE、NLL 或BrierScore。
+ H2：训练期校准与后处理温度缩放互补，但不能用测试集拟合温度。
+ H3：更好的全局ECE 不一定带来更优的选择性风险，因此必须同时画Risk–Coverage 曲线。
+图 4 从分类到可信决策。分类、校准、阈值选择分别使用训练集、校准集和最终测试集。
+损失函数与指标
+ugBS(p,y)=Σc‖pc−yc‖αβ
+广义Brier 不确定性；按论文设置范数阶数与外层指数，特定取值退化为经典BrierScore。
+
+===== PAGE 12 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+12
+∂LBSCE-GRA/∂θ=stopgrad(ugBS)·∂LCE/∂θ
+实现要点：对权重stop-gradient。若直接写u×CE 而不detach，梯度并不等价。
+pT=softmax(z/T), T*=argmin{T>0}NLLvalidation(T)
+温度缩放只在独立验证/校准集上拟合一个标量T。
+Coverage(τ)=P(s≥τ), Risk(τ)=E[(ŷ≠y)|s≥τ]
+置信分数s 可用最大类别概率；报告整条曲线及AURC/AUGRC。
+数据与实验矩阵
+要素 最低要求 推荐拓展
+数据 PneumoniaMNIST（二分类）或DermaMNIST（多分 类）；64/128 分辨率 增加第二个子集； MedMNIST-C
+模型 小型CNN 或ResNet-18 不同容量对校准的影响
+损失 CE、Focal、BSCE-GRA CE+温度缩放；标签平滑
+性能 Accuracy/AUROC、Macro-F1 敏感度、特异度、类别级结 果
+校准/拒
+识 NLL、Brier、ECE(15bins)、可靠性图、Risk–Coverage AURC/AUGRC；自适应分箱 ECE
+完整指导步骤
+1. 下载MedMNIST 并阅读数据卡；使用官方train/val/test，或从val 再划校准子集，记录划
+分。
+2. 先做CE 基线；确认AUROC 的正类、多分类averaging 和ECE 分箱实现正确。
+3. 实现Focal；再从官方仓库移植BSCE-GRA，写自动微分测试验证detach 前后梯度差异。
+4. 每种损失使用同一增强、主干和调参预算；至少3 个种子。
+5. 在校准集拟合温度T；测试集只评估一次，不调阈值、不选epoch。
+6. 绘制可靠性图，并同时报告bin 样本数；ECE 对分箱敏感，不能单独作为结论。
+7. 按最大概率从高到低排序，画Risk–Coverage；报告80%、90%、100% 覆盖率的风险。
+8. 做误差审查：类别不平衡、过度自信错误、图像质量；避免把课程结果写成临床结论。
+医疗表述边界：本项目是公开基准上的算法实验，不进行临床验证。报告中使用“模型在该数据
+集上的表现”，避免“可用于诊断/安全可靠”等超出证据的措辞。
+最低完成线、优秀拓展与风险
+层级 内容
+
+===== PAGE 13 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+13
+层级 内容
+最低完成
+线 CE/Focal/BSCE-GRA；3 种子；性能+校准+选择性指标；可靠性图与风险覆盖曲线。
+优秀拓展 MedMNIST-C 分布偏移；比较置信分数；bootstrap 置信区间；类别级校准。
+常见风险 测试集拟合温度/阈值；只报ECE；类别不平衡仍用accuracy 单指标；BSCE 权重忘 记detach。
+必读文献（主文献代码公开）
+1.Linetal.UncertaintyWeightedGradientsforModelCalibration.CVPR,2025. 论文 ｜ 代码 主参
+考；重点读Sec.4 和stop-gradient 实现。
+2.Yangetal.MedMNISTv2:ALarge-ScaleLightweightBenchmarkfor2Dand3DBiomedicalImage
+Classification.ScientificData,2023. 论文 ｜ 代码
+3.Traubetal.OvercomingCommonFlawsintheEvaluationofSelectiveClassificationSystems.
+NeurIPS,2024. 论文
+4.Guoetal.OnCalibrationofModernNeuralNetworks.ICML,2017. 论文 ｜ 代码
+5.Geifman&El-Yaniv.SelectiveNet:ADeepNeuralNetworkwithanIntegratedRejectOption.ICML,
+2019. 论文 ｜ 代码
+PROJECT 05 · ICLR 2025
+项目 5｜TabM：参数高效的表格深度学习集成
+复现 TabM 的共享参数多成员 MLP，并系统比较“多成员带来的收益”与训练/推理成本；这是最
+适合低算力、重统计实验的项目。
+项目标签 主论文 建议资源
+表格数据· 参数高效集
+成·MLP· 统计实验
+TabM:AdvancingTabularDeep
+LearningwithParameter-
+EfficientEnsembling
+CPU 可完成；GPU 建议4—
+8GB；多数数据集每次实验为
+分钟级
+官方代码：https://github.com/yandex-research/tabm
+研究问题与假设
+ H1：TabM(k>1) 相比同预算MLP 有更好的验证/测试表现与稳定性。
+ H2：收益来自成员多样性与集成，而不仅是参数或计算量增加。
+ H3：训练k=16/32 后裁剪成员，可能优于直接训练更小k，但具体结果依赖数据集。
+
+===== PAGE 14 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+14
+图 5 TabM 的课程抽象结构。实际细节以官方实现为准；重点研究 k 与效率、泛化和多样性的关
+系。
+模型与损失
+TabM 用成员特定的低成本缩放/适配参数配合共享MLP 主干，在一个模型内并行产生k 个预
+测。课程项目应直接调用官方包/实现，避免把普通的k 个独立MLP 误称为TabM。
+L=(1/(nk))Σᵢ₌₁ⁿΣᵣ₌₁ᵏℓ(fᵣ(xᵢ),yᵢ)
+训练时对样本和成员损失取平均；分类用交叉熵，回归可用MSE。
+p̄(y|x)=(1/k)Σᵣsoftmax(zᵣ(x)); ŷreg=(1/k)Σᵣfᵣ(x)
+测试时对分类概率或回归值取平均。
+数据与实验矩阵
+要素 最低要求 推荐拓展
+数据 Adult（OpenML1590）、Covertype（1596）、California Housing 再加1 个中小型公开数据集
+模型 MLP、TabM；树模型基线HistGradientBoosting/XGBoost TabNet/FT-Transformer
+成员数 k∈{1,4,8,16} k=32；训练后裁剪到4/8/16
+种子 5 个随机种子；固定外部数据划分 重复交叉验证
+指标 分类：ROC-AUC/Macro-F1/LogLoss；回归： RMSE/MAE/R² 校准、成员分歧、训练/推理 时间
+完整指导步骤
+1. 固定 train/val/test；所有预处理（缺失值、标准化、编码）只在训练集拟合，封装为
+pipeline。
+2. 建立强而简单的基线：常数预测、MLP、HistGradientBoosting/XGBoost；先确认指标方
+向。
+3. 运行官方TabM 示例并打印参数量；核对k 个成员输出的形状与平均方式。
+4. 设置k∈{1,4,8,16}；保持数据划分、训练轮数/早停规则、搜索预算一致。
+
+===== PAGE 15 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+15
+5. 每个设置做5 种子；保存每成员预测，以计算成员错误相关性或概率方差。
+6. 测量训练时间、推理时间、峰值内存和参数量；同时比较独立 k×MLP 作为成本上界（可
+只做小数据）。
+7. 画性能—k、时间—k、性能—参数量曲线；检查边际收益是否递减。
+8. 做裁剪实验：从训练好的大k 随机/按验证集选择少量成员，明确该步骤是否使用验证。
+表格数据最常见的泄漏：先在全数据上标准化、目标编码或缺失值填补，再切分数据，会让测试
+信息进入训练。所有有状态的预处理都必须只fit 训练集，再transform 验证/测试集。
+最低完成线、优秀拓展与风险
+层级 内容
+最低完成线 3 个数据集；MLP/树模型/TabM；k 消融；5 种子；性能和效率一起报告。
+优秀拓展 成员裁剪、校准、错误相关性；与k 个独立MLP 做严格成本对照。
+常见风险 预处理泄漏；对树模型和神经网络使用悬殊调参预算；只报最好数据集；把验证集 当测试集。
+必读文献（主文献代码公开）
+1.Gorishniyetal.TabM:AdvancingTabularDeepLearningwithParameter-EfficientEnsembling.ICLR,
+2025. 论文 ｜ 代码 主参考；优先运行官方示例与推荐默认值。
+2.Wenetal.BatchEnsemble:AnAlternativeApproachtoEfficientEnsembleandLifelongLearning.
+ICLR,2020. 论文 ｜ 代码
+3.Gorishniyetal.RevisitingDeepLearningModelsforTabularData.NeurIPS,2021. 论文 ｜ 代码
+4.Hollmannetal.AccuratePredictionsonSmallDatawithaTabularFoundationModel.Nature,2025. 论
+文 ｜ 代码
+5.Chen&Guestrin.XGBoost:AScalableTreeBoostingSystem.KDD,2016. 论文 ｜ 代码
+
+===== PAGE 16 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+16
+9 进度与提交要求
+9.1 八周计划
+9.2 建议仓库结构
+project/ ├─README.md ├─configs/ ├─src/ ├─scripts/ ├─tests/ ├─results/ └─paper/
+大权重使用下载脚本；不要把数据集和无关中间文件提交到代码仓库。
+ README：任务简介、安装、数据、复现命令、预期输出和已知问题。
+ configs：主表中的每个结果都能指向唯一配置。
+ tests：至少测试数据划分、输出形状、损失梯度或指标中的三项。
+ results：原始结果和汇总结果分开；均值与图表由脚本生成。
+9.3 实验记录模板
+字段 示例或说明
+实验编号 P1_EfficientViM_ablate_hsm_seed1
+研究问题 去掉HSM 后，准确率与延迟如何变化？
+唯一改动 HSM 替换为等通道卷积；其余配置不变
+环境与命令 GPU、CUDA、commit、配置路径、完整命令
+结果 验证/测试指标、时长、显存、输出文件位置
+判断 支持/不支持假设；下一步；异常与失败说明
+周 任务 本周提交
+1 选题、组队、阅读主论文 一页立项书与分工表
+2 环境、数据和仓库审计 环境文件、数据脚本、最小前向日志
+3 统一训练器与基线 稳定基线和三种子方差初检
+4 核心方法课程规模复现 首个主方法结果与设置差异表
+5 完成主实验矩阵 原始CSV/JSON、主表草稿、失败日志
+6 消融、效率、误差分析 一项消融、两张关键图和中期总结
+7 补实验与论文初稿 完整初稿、同伴复核清单、复现命令
+8 终稿与答辩 Word/PDF、代码、复现说明、答辩材料
+
+===== PAGE 17 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+17
+9.4 课程论文结构
+章节 必须回答的问题
+摘要 问题、方法、数据、最重要结果和结论各一句。
+1 引言 为什么值得研究？现有工作缺什么？本项目具体做了什么？
+2 相关工作 按方法思想组织；说明本项目与主论文、基线的关系。
+3 方法 结构图、符号、损失或算法、与基线差异。
+4 实验设置 数据、划分、预处理、超参、硬件、种子、指标和模型选择。
+5 结果与分析 主表、消融、效率、误差或失败案例；区分观察与解释。
+6 局限与伦理 算力缩减、数据偏差、外推限制和潜在误用。
+7 结论 逐条回答研究假设，不引入正文未出现的新结果。
+附录 完整超参、更多曲线、复现命令和额外负结果。
+9.5 最终提交清单
+• 项目报告PDF，以小组所有成员“姓名-学号”的格式命名，如“张三2023***-李四
+2023***”，每个小组提交1 份以上材料到头歌教学实践平台即可。
+• 代码仓库压缩包或可访问链接，以及环境锁定文件。
+• 主结果的原始日志、CSV/JSON 和汇总脚本。
+• README 中的一键复现命令与预期输出。
+• 组内分工、每人贡献和生成式AI 使用说明。
+• 答辩幻灯片；每位成员均准备回答方法、代码和结果问题。
+10 评分、诚信与自检
+10.1 评分标准
+维度 分值 达到高分需要
+问题与论文理解 10 假设可检验；准确说明方法、边界和课程缩减。
+代码与可复现性 20 模块化、配置化、测试充分；新环境按README 可运行。
+实验设计与公平性 20 基线合理；划分无泄漏；种子充足；调参预算透明。
+核心复现 15 复现关键趋势；差异有证据分析；不挑选最好运行。
+消融、效率与误差 15 关键消融、资源统计、失败或子群分析完整。
+论文与图表 15 图表自解释；引文规范；结论不超出证据。
+答辩与个人贡献 5 全员理解方法和代码；个人贡献可核查。
+
+===== PAGE 18 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+18
+10.2 学术诚信与工具使用
+允许：使用生成式AI 辅助解释、调试和语言润色，但要在报告中写明用途和人工核验方
+式。
+禁止：伪造实验、日志或引文；复制论文或仓库文字而不引用；提交自己无法解释的代码；
+使用测试集调参或选阈值而不披露。
+10.3 答辩准备
+ 你的自变量、因变量、控制变量和成功判据是什么？
+ 为什么选择这个基线？调参预算是否公平？
+ 论文完整设置与课程设置有哪些差异？
+ 最关键的消融是什么？去掉组件后发生了什么？
+ 方法增益与随机种子波动相比有多大？
+ 是否存在数据泄漏？模型选择、校准和阈值分别使用哪个集合？
+ 最失败的实验是什么？它排除了哪种解释？
+10.4 最终自检
+• 论文与代码链接可访问，主参考代码为官方或作者仓库。
+• 所有主结果能从配置、日志和汇总脚本追溯。
+• 测试集未参与调参、温度拟合、阈值选择或早停。
+• 主结果达到规定种子数，报告均值与波动。
+• 至少包含一项消融、一项效率统计和一项误差或失败分析。
+• 图表有轴名、单位、误差条或种子数，指标方向清楚。
+• 论文明确标注课程规模修改，没有把相关性写成因果。
+• 组内每位成员能独立解释核心公式、代码和结论。
+
+===== PAGE 19 =====
+DEEP LEARNING · COURSE PROJECTS 2026
+19
+附录 统一实验与写作规范
+建议环境
+Python3.10/3.11 · PyTorch2.x · CUDA11.8/12.x · AMP
+以主论文官方仓库的兼容版本为准；固定实际使用版本。
+ 环境：提交environment.yml 或requirements.lock，保存nvidia-smi 输出。
+ 确定性：设置Python、NumPy、PyTorch 和CUDA 随机种子。
+ 显存：先减batch，再使用梯度累积和AMP；改变必须写入配置。
+ 断点：保存模型、优化器、调度器和随机状态，保证可恢复。
+ 统计：主表由脚本从原始结果生成，不允许手工抄写均值。
+结论措辞示例
+不要这样写 建议这样写
+本方法显著优于所有方
+法。 在3 个种子和本课程设置下，方法A 比基线高1.2±0.4 个百分点。
+说明该模块能学到更好特
+征。
+去除模块后性能下降；该结果与其有助于表示学习的解释一致，但不
+足以证明机制。
+模型可以用于医疗诊断。 模型只在公开MedMNIST 基准上评估，尚未经过外部临床验证。
+复现了论文结果。 在缩小数据和训练预算下复现了相同相对趋势，绝对数值不可直接比 较。
