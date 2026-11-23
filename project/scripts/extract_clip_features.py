@@ -151,7 +151,7 @@ def main() -> int:
     t0 = time.time()
     feats = extract_features(
         model, loader, device=device, take=take, l2_normalize=l2_norm, amp=amp
-    ).numpy().astype(np.float32, copy=False)
+    ).cpu().numpy().astype(np.float32, copy=False)
     elapsed = time.time() - t0
 
     expected = (len(subset), 768)

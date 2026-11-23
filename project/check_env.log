@@ -1,0 +1,30 @@
+
+=== 环境版本 ===
+          python: 3.10.22
+        platform: Linux-5.4.0-144-generic-x86_64-with-glibc2.35
+           torch: 2.14.1+cu130
+     torchvision: 0.29.2+cu132
+    cuda_runtime: 13.0
+  cuda_available: True
+             gpu: NVIDIA GeForce RTX 3080 Ti
+gpu_total_mem_GB: 11.63
+    transformers: 4.57.6
+
+=== 配置校验 ===
+OK: seeds/data/kernel/selection/fixmatch 校验通过（6 项断言）
+    SELECTION_SEEDS=[42, 1234, 12345] TRAIN_SEEDS=[42, 1234, 12345] VAL_SEED=0
+    fixmatch: tau=0.9 lambda_u=1.0 mu=7 batch=64+448
+
+=== WRN-28-2 单批前向 ===
+input : (8, 3, 32, 32)
+logits: (8, 10)  params=1.47M (WRN-28-2 约 1.47M)
+OK: 形状 [B, 10] 正确
+
+=== CLIP ViT-B/32 单批前向 ===
+CIFAR-10 已就绪: root=/root/autodl-tmp/RDSS-main-main/project/data 取前 8 张（train=True）
+pixel_values: (8, 3, 224, 224) (torch.float32)
+features    : (8, 768) (torch.float32)  take=cls_last_hidden  model=openai/clip-vit-base-patch32
+OK: 形状 [B, 768] 正确
+
+=== P0 自检结果 ===
+PASS: 配置可解析且自洽；一个 batch 过 CLIP 与分类头，形状正确。

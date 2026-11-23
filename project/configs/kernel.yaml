@@ -4,9 +4,9 @@ kernel:
   type: gaussian
   formula: "k(x,y) = exp(-||x-y||^2 / sigma)"
   bandwidth_rule: median        # median heuristic：sigma = 全池 pairwise 距离的中位数
-  sigma: null                   # TODO(P1): scripts/compute_sigma.py 回填
-  gamma: null                   # TODO(P1): gamma = 1 / sigma
-  sigma_source: null            # TODO(P1): 由 compute_sigma.py 写入 n / l2 / bins / 特征 sha1 / 时间戳
+  sigma: 0.752457
+  gamma: 1.328980
+  sigma_source: median_heuristic n=45000 l2=1 bins=32768 sha1=6fce77b983e9 at=2026-11-23T19:42:53
   gamma_official: 0.5           # 官方 RDSS.py 的硬编码默认值（A7-1），仅用于"实现差异"复现实验，不是主实验口径
   l2_normalize_features: true   # 先 L2 归一化再算距离（工程建议，写入配置供审计）
   block_rows: 2000              # 分块行数；2000×45000 float32 ≈ 360MB/块，避免一次性开 8GB 核矩阵
